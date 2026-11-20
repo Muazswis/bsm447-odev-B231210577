@@ -1,24 +1,31 @@
 {
   "expo": {
-    "name": "b231210577-ghibli",
+    "name": "Ghibli Arşivi",
     "slug": "b231210577-ghibli",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.muazswis.ghibliarsivi"
     },
     "android": {
+      "package": "com.muazswis.ghibliarsivi",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#172B4D"
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "82fc03f3-ae08-463b-9ab5-f8331c96ad51"
+      }
     }
   }
 }
