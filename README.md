@@ -8,33 +8,35 @@ BSM447 Mobil Uygulama Geliştirme - Dönem Projesi
 - Ad Soyad: Muaz Swis
 - Öğrenci Numarası: B231210577
 - Konu: K23 - Ghibli Arşivi
-- Varyant: a - 2000 ve öncesi filmler
+- Varyant: a - 2000 ve öncesinde yayımlanan filmler
 - Ek Kural: 7 - Kalıcı Karanlık/Aydınlık Tema
 
 ## Proje Hakkında
 
-Ghibli Arşivi, React Native ve Expo ile geliştirilmiş bir mobil film arşivi uygulamasıdır.
+Ghibli Arşivi, React Native ve Expo kullanılarak geliştirilen mobil film arşivi uygulamasıdır.
 
-Studio Ghibli API üzerinden alınan filmler arasından 2000 ve öncesinde yayımlananlar listelenir. Kullanıcılar film arayabilir, ayrıntıları inceleyebilir ve favorilerine kaydedebilir.
+Studio Ghibli API üzerinden filmler alınır ve 2000 yılı ve öncesinde yayımlananlar listelenir.
 
 ## Uygulama Özellikleri
 
-- Studio Ghibli API üzerinden film verilerini çekme
+- API üzerinden film verilerini çekme
 - 2000 ve öncesi filmleri filtreleme
 - Film adına göre arama
-- Film detaylarını görüntüleme
-- Yönetmen, yıl, süre, puan ve açıklama bilgileri
-- Süreyi saat ve dakika olarak gösterme
-- 90 ve üzeri puanlar için yeşil etiket
+- Film posterlerini ve yayın yıllarını gösterme
+- Film detay ekranı
+- Yönetmen, süre, puan ve açıklama bilgileri
+- Süreyi saat ve dakika biçiminde gösterme
+- 90 ve üzeri puanlarda yeşil etiket
 - Favorilere ekleme ve çıkarma
 - Kaydedilenler ekranı
 - AsyncStorage ile kalıcı favoriler
-- Kalıcı karanlık ve aydınlık tema
+- Karanlık ve aydınlık tema
+- Tema tercihini AsyncStorage ile saklama
 
 ## Kullanılan Teknolojiler
 
 - React Native
-- Expo
+- Expo SDK 58
 - JavaScript
 - React Navigation (Stack ve Bottom Tabs)
 - AsyncStorage
@@ -71,21 +73,26 @@ Uygulamayı başlatmak için:
 
 ## Android APK
 
-Android APK, Expo EAS Build ile oluşturulmuş ve Android telefonda test edilmiştir.
+Uygulama Expo EAS Build kullanılarak derlenmiştir.
 
 - Sürüm: 1.0.0
 - Build profili: preview
-- Durum: Succeeded
+- Platform: Android
+- Test: Android telefona kuruldu ve çalıştırıldı
 
-[APK indirme sayfası](https://expo.dev/accounts/muazswis/projects/b231210577-ghibli/builds/a7a1bec6-4448-46c3-bfd3-6d73cdd3a631)
+[Android APK dosyasını indir](https://github.com/Muazswis/bsm447-odev-B231210577/releases/download/v1.0.0/B231210577_Ghibli_Arsivi.apk)
 
 ## Tanıtım Videosu
 
-Uygulamanın film listesi, detay, favoriler ve tema değiştirme özelliklerini gösteren 60 saniyeden kısa video hazırlanmıştır.
+Film listesi, film detayı, favoriler ve tema değiştirme işlemlerini gösteren 60 saniyeden kısa ekran kaydıdır.
 
-Video bağlantısı: [GitHub Release bağlantısı eklenecek]
+[Tanıtım videosunu indir](https://github.com/Muazswis/bsm447-odev-B231210577/releases/download/v1.0.0/B231210577_Tanitim.mp4)
 
-## GitHub
+## GitHub Release
+
+[Uygulamanın v1.0.0 sürümü](https://github.com/Muazswis/bsm447-odev-B231210577/releases/tag/v1.0.0)
+
+## GitHub Deposu
 
 https://github.com/Muazswis/bsm447-odev-B231210577
 
