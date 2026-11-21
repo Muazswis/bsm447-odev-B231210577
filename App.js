@@ -13,7 +13,11 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DarkTheme,
+  DefaultTheme,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -109,7 +113,11 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
       )}
 
       <View style={styles.filmInfo}>
-        <Text style={[styles.filmTitle, { color: colors.text }]}>
+        <Text
+          style={[styles.filmTitle, { color: colors.text }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {item.title}
         </Text>
 
@@ -193,7 +201,12 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
             style={[styles.retry, { backgroundColor: colors.accent }]}
             onPress={getFilms}
           >
-            <Text style={{ color: colors.accentText, fontWeight: 'bold' }}>
+            <Text
+              style={{
+                color: colors.accentText,
+                fontWeight: 'bold',
+              }}
+            >
               Tekrar Dene
             </Text>
           </TouchableOpacity>
@@ -339,7 +352,12 @@ export default function App() {
 
   if (!storageReady) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.accent} />
         <Text style={{ color: colors.text, marginTop: 12 }}>
           Uygulama hazırlanıyor...
