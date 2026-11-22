@@ -13,11 +13,13 @@ import {
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   NavigationContainer,
   DarkTheme,
   DefaultTheme,
 } from '@react-navigation/native';
+
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -89,9 +91,17 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
     navigation.getParent()?.navigate('Detail', { film });
   };
 
+  // Görev 9: Arama kutusunu temizle
+  const clearSearch = () => {
+    setSearch('');
+  };
+
   const renderFilm = ({ item }) => (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.card }]}
+      style={[
+        styles.card,
+        { backgroundColor: colors.card },
+      ]}
       activeOpacity={0.7}
       onPress={() => openDetail(item)}
     >
@@ -114,18 +124,31 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
 
       <View style={styles.filmInfo}>
         <Text
-          style={[styles.filmTitle, { color: colors.text }]}
+          style={[
+            styles.filmTitle,
+            { color: colors.text },
+          ]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
           {item.title}
         </Text>
 
-        <Text style={[styles.filmMeta, { color: colors.secondary }]}>
+        <Text
+          style={[
+            styles.filmMeta,
+            { color: colors.secondary },
+          ]}
+        >
           Yayın yılı: {item.release_date}
         </Text>
 
-        <Text style={[styles.filmMeta, { color: colors.secondary }]}>
+        <Text
+          style={[
+            styles.filmMeta,
+            { color: colors.secondary },
+          ]}
+        >
           Süre: {formatDuration(item.running_time)}
         </Text>
 
@@ -147,24 +170,44 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.headerText}>
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: colors.text },
+            ]}
+          >
             🎬 Ghibli Arşivi
           </Text>
 
-          <Text style={[styles.subtitle, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.subtitle,
+              { color: colors.secondary },
+            ]}
+          >
             2000 ve Öncesi Filmler
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.themeButton, { backgroundColor: colors.card }]}
+          style={[
+            styles.themeButton,
+            { backgroundColor: colors.card },
+          ]}
           onPress={onToggleTheme}
           accessibilityRole="button"
           accessibilityLabel={
-            isDark ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'
+            isDark
+              ? 'Aydınlık temaya geç'
+              : 'Karanlık temaya geç'
           }
         >
           <Text style={styles.themeIcon}>
@@ -173,32 +216,70 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        style={[
-          styles.searchInput,
-          {
-            backgroundColor: colors.input,
-            borderColor: colors.border,
-            color: colors.text,
-          },
-        ]}
-        placeholder="Film ara..."
-        placeholderTextColor={colors.secondary}
-        value={search}
-        onChangeText={setSearch}
-        autoCorrect={false}
-      />
+      {/* Görev 9: Arama kutusu ve temizleme butonu */}
+      <View style={styles.searchRow}>
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              backgroundColor: colors.input,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
+          placeholder="Film ara..."
+          placeholderTextColor={colors.secondary}
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+        />
+
+        {search.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.clearButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={clearSearch}
+            accessibilityRole="button"
+            accessibilityLabel="Aramayı temizle"
+          >
+            <Text
+              style={[
+                styles.clearButtonText,
+                { color: colors.text },
+              ]}
+            >
+              ✕
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.accent} />
+        <ActivityIndicator
+          size="large"
+          color={colors.accent}
+        />
       ) : error ? (
         <View>
-          <Text style={[styles.error, { color: colors.danger }]}>
+          <Text
+            style={[
+              styles.error,
+              { color: colors.danger },
+            ]}
+          >
             {error}
           </Text>
 
           <TouchableOpacity
-            style={[styles.retry, { backgroundColor: colors.accent }]}
+            style={[
+              styles.retry,
+              { backgroundColor: colors.accent },
+            ]}
             onPress={getFilms}
           >
             <Text
@@ -219,7 +300,12 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: colors.secondary }]}>
+            <Text
+              style={[
+                styles.empty,
+                { color: colors.secondary },
+              ]}
+            >
               Sonuç bulunamadı.
             </Text>
           }
@@ -229,7 +315,12 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
   );
 }
 
-function TabsScreen({ savedFilms, colors, isDark, onToggleTheme }) {
+function TabsScreen({
+  savedFilms,
+  colors,
+  isDark,
+  onToggleTheme,
+}) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -249,7 +340,9 @@ function TabsScreen({ savedFilms, colors, isDark, onToggleTheme }) {
       <Tab.Screen
         name="Filmler"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 22 }}>🎬</Text>,
+          tabBarIcon: () => (
+            <Text style={{ fontSize: 22 }}>🎬</Text>
+          ),
         }}
       >
         {(props) => (
@@ -265,7 +358,9 @@ function TabsScreen({ savedFilms, colors, isDark, onToggleTheme }) {
       <Tab.Screen
         name="Kaydedilenler"
         options={{
-          tabBarIcon: () => <Text style={{ fontSize: 22 }}>❤️</Text>,
+          tabBarIcon: () => (
+            <Text style={{ fontSize: 22 }}>❤️</Text>
+          ),
         }}
       >
         {(props) => (
@@ -290,10 +385,11 @@ export default function App() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [storedFilms, storedTheme] = await Promise.all([
-          AsyncStorage.getItem(FILMS_KEY),
-          AsyncStorage.getItem(THEME_KEY),
-        ]);
+        const [storedFilms, storedTheme] =
+          await Promise.all([
+            AsyncStorage.getItem(FILMS_KEY),
+            AsyncStorage.getItem(THEME_KEY),
+          ]);
 
         if (storedFilms !== null) {
           const parsedFilms = JSON.parse(storedFilms);
@@ -322,7 +418,9 @@ export default function App() {
     AsyncStorage.setItem(
       FILMS_KEY,
       JSON.stringify(savedFilms)
-    ).catch((err) => console.log('Favoriler kaydedilemedi:', err));
+    ).catch((err) =>
+      console.log('Favoriler kaydedilemedi:', err)
+    );
   }, [savedFilms, storageReady]);
 
   useEffect(() => {
@@ -331,15 +429,21 @@ export default function App() {
     AsyncStorage.setItem(
       THEME_KEY,
       isDark ? 'dark' : 'light'
-    ).catch((err) => console.log('Tema kaydedilemedi:', err));
+    ).catch((err) =>
+      console.log('Tema kaydedilemedi:', err)
+    );
   }, [isDark, storageReady]);
 
   const toggleSave = (film) => {
     setSavedFilms((current) => {
-      const exists = current.some((item) => item.id === film.id);
+      const exists = current.some(
+        (item) => item.id === film.id
+      );
 
       if (exists) {
-        return current.filter((item) => item.id !== film.id);
+        return current.filter(
+          (item) => item.id !== film.id
+        );
       }
 
       return [...current, film];
@@ -358,8 +462,17 @@ export default function App() {
           { backgroundColor: colors.background },
         ]}
       >
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text style={{ color: colors.text, marginTop: 12 }}>
+        <ActivityIndicator
+          size="large"
+          color={colors.accent}
+        />
+
+        <Text
+          style={{
+            color: colors.text,
+            marginTop: 12,
+          }}
+        >
           Uygulama hazırlanıyor...
         </Text>
       </View>
@@ -369,7 +482,9 @@ export default function App() {
   const navigationTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
     colors: {
-      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      ...(isDark
+        ? DarkTheme.colors
+        : DefaultTheme.colors),
       primary: colors.accent,
       background: colors.background,
       card: colors.card,
@@ -476,12 +591,34 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
+  // Arama kutusu ve temizleme butonu
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+
   searchInput: {
+    flex: 1,
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    marginBottom: 18,
     borderWidth: 1,
+  },
+
+  clearButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+
+  clearButtonText: {
+    fontSize: 22,
+    fontWeight: 'bold',
   },
 
   list: {
