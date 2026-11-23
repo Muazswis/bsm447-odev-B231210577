@@ -91,12 +91,12 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
     navigation.getParent()?.navigate('Detail', { film });
   };
 
-  // Görev 9: Arama kutusunu temizle
   const clearSearch = () => {
     setSearch('');
   };
 
-  const renderFilm = ({ item }) => (
+  // Görev 14: FlatList index ile sıra numarası gösterme
+  const renderFilm = ({ item, index }) => (
     <TouchableOpacity
       style={[
         styles.card,
@@ -105,6 +105,22 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
       activeOpacity={0.7}
       onPress={() => openDetail(item)}
     >
+      <View
+        style={[
+          styles.numberBadge,
+          { backgroundColor: colors.accent },
+        ]}
+      >
+        <Text
+          style={[
+            styles.numberText,
+            { color: colors.accentText },
+          ]}
+        >
+          {index + 1}
+        </Text>
+      </View>
+
       {item.image ? (
         <Image
           source={{ uri: item.image }}
@@ -216,7 +232,6 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
         </TouchableOpacity>
       </View>
 
-      {/* Görev 9: Arama kutusu ve temizleme butonu */}
       <View style={styles.searchRow}>
         <TextInput
           style={[
@@ -293,23 +308,35 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
-          data={filteredFilms}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={renderFilm}
-          contentContainerStyle={styles.list}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <Text
-              style={[
-                styles.empty,
-                { color: colors.secondary },
-              ]}
-            >
-              Sonuç bulunamadı.
-            </Text>
-          }
-        />
+        <>
+          {/* Görev 15: Filtrelenmiş toplam kayıt sayısı */}
+          <Text
+            style={[
+              styles.totalCount,
+              { color: colors.secondary },
+            ]}
+          >
+            Toplam {filteredFilms.length} kayıt
+          </Text>
+
+          <FlatList
+            data={filteredFilms}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderFilm}
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <Text
+                style={[
+                  styles.empty,
+                  { color: colors.secondary },
+                ]}
+              >
+                Sonuç bulunamadı.
+              </Text>
+            }
+          />
+        </>
       )}
     </View>
   );
@@ -591,7 +618,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 
-  // Arama kutusu ve temizleme butonu
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -621,6 +647,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  totalCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+
   list: {
     paddingBottom: 30,
   },
@@ -631,6 +664,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 10,
     alignItems: 'center',
+  },
+
+  // Görev 14: Sıra numarası tasarımı
+  numberBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+
+  numberText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 
   poster: {

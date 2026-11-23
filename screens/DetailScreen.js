@@ -28,7 +28,10 @@ export default function DetailScreen({
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
       contentContainerStyle={styles.scrollContent}
     >
       {film.image ? (
@@ -48,7 +51,12 @@ export default function DetailScreen({
       )}
 
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.title,
+            { color: colors.text },
+          ]}
+        >
           {film.title}
         </Text>
 
@@ -69,19 +77,50 @@ export default function DetailScreen({
             { backgroundColor: colors.card },
           ]}
         >
-          <Text style={[styles.info, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.info,
+              { color: colors.secondary },
+            ]}
+          >
             🎬 Yönetmen: {film.director}
           </Text>
 
-          <Text style={[styles.info, { color: colors.secondary }]}>
+          {!!film.producer && (
+            <Text
+              style={[
+                styles.info,
+                { color: colors.secondary },
+              ]}
+            >
+              🎞️ Yapımcı: {film.producer}
+            </Text>
+          )}
+
+          <Text
+            style={[
+              styles.info,
+              { color: colors.secondary },
+            ]}
+          >
             📅 Yayın Yılı: {film.release_date}
           </Text>
 
-          <Text style={[styles.info, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.info,
+              { color: colors.secondary },
+            ]}
+          >
             ⏱ Süre: {formatDuration(film.running_time)}
           </Text>
 
-          <Text style={[styles.info, { color: colors.secondary }]}>
+          <Text
+            style={[
+              styles.info,
+              { color: colors.secondary },
+            ]}
+          >
             ⭐ Puan: {film.rt_score} / 100
           </Text>
 
@@ -132,7 +171,12 @@ export default function DetailScreen({
           </Text>
         </TouchableOpacity>
 
-        <Text style={[styles.heading, { color: colors.text }]}>
+        <Text
+          style={[
+            styles.heading,
+            { color: colors.text },
+          ]}
+        >
           Film Açıklaması
         </Text>
 
