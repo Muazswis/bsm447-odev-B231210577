@@ -32,13 +32,20 @@ const FILMS_KEY = 'ghibli_saved_films';
 const THEME_KEY = 'ghibli_theme';
 
 const Stack = createNativeStackNavigator();
+
 const Tab = createBottomTabNavigator();
 
-function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
+function HomeScreen({
+  navigation,
+  colors,
+  isDark,
+  onToggleTheme,
+}) {
   const [films, setFilms] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sortAZ, setSortAZ] = useState(false);
 
   const getFilms = async () => {
     setLoading(true);
@@ -58,15 +65,29 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
       }
 
       const selected = data
-        .filter((film) => Number(film.release_date) <= 2000)
+        .filter(
+          (film) => Number(film.release_date) <= 2000
+        )
         .sort(
           (a, b) =>
-            Number(b.release_date) - Number(a.release_date)
+            Number(b.release_date) -
+            Number(a.release_date)
         );
 
       setFilms(selected);
     } catch (err) {
-      setError('Filmler yüklenemedi. İnterneti kontrol et.');
+      // Görev 21: Ağ bağlantısı ve API hatalarını yönet
+      const isNetworkError =
+        err instanceof TypeError ||
+        String(err?.message || '')
+          .toLowerCase()
+          .includes('network request failed');
+
+      setError(
+        isNetworkError
+          ? 'Bağlantı yok. İnternet bağlantını kontrol et.'
+          : 'Filmler yüklenemedi. Lütfen tekrar dene.'
+      );
     } finally {
       setLoading(false);
     }
@@ -77,25 +98,37 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
   }, []);
 
   const filteredFilms = films.filter((film) =>
-    film.title.toLocaleLowerCase('tr-TR').includes(
-      search.toLocaleLowerCase('tr-TR')
-    )
+    film.title
+      .toLocaleLowerCase('tr-TR')
+      .includes(search.toLocaleLowerCase('tr-TR'))
   );
+
+  const displayedFilms = [...filteredFilms];
+
+  if (sortAZ) {
+    displayedFilms.sort((a, b) =>
+      a.title.localeCompare(b.title, 'tr-TR')
+    );
+  }
 
   const formatDuration = (minutes) => {
     const total = Number(minutes);
-    return `${Math.floor(total / 60)} sa ${total % 60} dk`;
+
+    return `${Math.floor(total / 60)} sa ${
+      total % 60
+    } dk`;
   };
 
   const openDetail = (film) => {
-    navigation.getParent()?.navigate('Detail', { film });
+    navigation.getParent()?.navigate('Detail', {
+      film,
+    });
   };
 
   const clearSearch = () => {
     setSearch('');
   };
 
-  // Görev 14: FlatList index ile sıra numarası gösterme
   const renderFilm = ({ item, index }) => (
     <TouchableOpacity
       style={[
@@ -134,7 +167,9 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
             { backgroundColor: colors.border },
           ]}
         >
-          <Text style={styles.placeholderIcon}>🎬</Text>
+          <Text style={styles.placeholderIcon}>
+            🎬
+          </Text>
         </View>
       )}
 
@@ -275,12 +310,25 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
       </View>
 
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={colors.accent}
-        />
+        <View style={styles.loadingState}>
+          <ActivityIndicator
+            size="large"
+            color={colors.accent}
+          />
+
+          <Text
+            style={[
+              styles.loadingText,
+              { color: colors.secondary },
+            ]}
+          >
+            Yükleniyor…
+          </Text>
+        </View>
       ) : error ? (
-        <View>
+        <View style={styles.errorState}>
+          <Text style={styles.errorIcon}>📡</Text>
+
           <Text
             style={[
               styles.error,
@@ -296,6 +344,8 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
               { backgroundColor: colors.accent },
             ]}
             onPress={getFilms}
+            accessibilityRole="button"
+            accessibilityLabel="Tekrar dene"
           >
             <Text
               style={{
@@ -309,20 +359,63 @@ function HomeScreen({ navigation, colors, isDark, onToggleTheme }) {
         </View>
       ) : (
         <>
-          {/* Görev 15: Filtrelenmiş toplam kayıt sayısı */}
-          <Text
-            style={[
-              styles.totalCount,
-              { color: colors.secondary },
-            ]}
-          >
-            Toplam {filteredFilms.length} kayıt
-          </Text>
+          <View style={styles.listToolbar}>
+            <Text
+              style={[
+                styles.totalCount,
+                { color: colors.secondary },
+              ]}
+            >
+              Toplam {displayedFilms.length} kayıt
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.sortButton,
+                {
+                  backgroundColor: sortAZ
+                    ? colors.accent
+                    : colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() =>
+                setSortAZ((current) => !current)
+              }
+              accessibilityRole="button"
+              accessibilityLabel={
+                sortAZ
+                  ? 'Yayın yılına göre sırala'
+                  : 'Alfabetik sırala'
+              }
+            >
+              <Text
+                style={[
+                  styles.sortButtonText,
+                  {
+                    color: sortAZ
+                      ? colors.accentText
+                      : colors.text,
+                  },
+                ]}
+              >
+                {sortAZ ? '✓ A → Z' : 'A → Z'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <FlatList
-            data={filteredFilms}
+            data={displayedFilms}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderFilm}
+            ItemSeparatorComponent={() => (
+              <View
+                style={[
+                  styles.separator,
+                  { backgroundColor: colors.border },
+                ]}
+              />
+            )}
             contentContainerStyle={styles.list}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
@@ -353,7 +446,8 @@ function TabsScreen({
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.tabInactive,
+        tabBarInactiveTintColor:
+          colors.tabInactive,
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
@@ -368,7 +462,9 @@ function TabsScreen({
         name="Filmler"
         options={{
           tabBarIcon: () => (
-            <Text style={{ fontSize: 22 }}>🎬</Text>
+            <Text style={{ fontSize: 22 }}>
+              🎬
+            </Text>
           ),
         }}
       >
@@ -383,10 +479,12 @@ function TabsScreen({
       </Tab.Screen>
 
       <Tab.Screen
-        name="Kaydedilenler"
+        name="Favorilerim"
         options={{
           tabBarIcon: () => (
-            <Text style={{ fontSize: 22 }}>❤️</Text>
+            <Text style={{ fontSize: 22 }}>
+              ⭐
+            </Text>
           ),
         }}
       >
@@ -403,23 +501,33 @@ function TabsScreen({
 }
 
 export default function App() {
-  const [savedFilms, setSavedFilms] = useState([]);
-  const [isDark, setIsDark] = useState(false);
-  const [storageReady, setStorageReady] = useState(false);
+  const [savedFilms, setSavedFilms] =
+    useState([]);
 
-  const colors = isDark ? themes.dark : themes.light;
+  const [isDark, setIsDark] =
+    useState(false);
+
+  const [storageReady, setStorageReady] =
+    useState(false);
+
+  const colors = isDark
+    ? themes.dark
+    : themes.light;
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [storedFilms, storedTheme] =
-          await Promise.all([
-            AsyncStorage.getItem(FILMS_KEY),
-            AsyncStorage.getItem(THEME_KEY),
-          ]);
+        const [
+          storedFilms,
+          storedTheme,
+        ] = await Promise.all([
+          AsyncStorage.getItem(FILMS_KEY),
+          AsyncStorage.getItem(THEME_KEY),
+        ]);
 
         if (storedFilms !== null) {
-          const parsedFilms = JSON.parse(storedFilms);
+          const parsedFilms =
+            JSON.parse(storedFilms);
 
           if (Array.isArray(parsedFilms)) {
             setSavedFilms(parsedFilms);
@@ -430,7 +538,10 @@ export default function App() {
           setIsDark(true);
         }
       } catch (err) {
-        console.log('Kayıtlar yüklenemedi:', err);
+        console.log(
+          'Kayıtlar yüklenemedi:',
+          err
+        );
       } finally {
         setStorageReady(true);
       }
@@ -446,7 +557,10 @@ export default function App() {
       FILMS_KEY,
       JSON.stringify(savedFilms)
     ).catch((err) =>
-      console.log('Favoriler kaydedilemedi:', err)
+      console.log(
+        'Favoriler kaydedilemedi:',
+        err
+      )
     );
   }, [savedFilms, storageReady]);
 
@@ -457,7 +571,10 @@ export default function App() {
       THEME_KEY,
       isDark ? 'dark' : 'light'
     ).catch((err) =>
-      console.log('Tema kaydedilemedi:', err)
+      console.log(
+        'Tema kaydedilemedi:',
+        err
+      )
     );
   }, [isDark, storageReady]);
 
@@ -486,7 +603,10 @@ export default function App() {
       <View
         style={[
           styles.loadingContainer,
-          { backgroundColor: colors.background },
+          {
+            backgroundColor:
+              colors.background,
+          },
         ]}
       >
         <ActivityIndicator
@@ -521,7 +641,9 @@ export default function App() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer
+      theme={navigationTheme}
+    >
       <StatusBar
         barStyle={colors.statusBar}
         backgroundColor={colors.background}
@@ -531,13 +653,16 @@ export default function App() {
         screenOptions={{
           headerTintColor: colors.text,
           headerStyle: {
-            backgroundColor: colors.background,
+            backgroundColor:
+              colors.background,
           },
         }}
       >
         <Stack.Screen
           name="Tabs"
-          options={{ headerShown: false }}
+          options={{
+            headerShown: false,
+          }}
         >
           {(props) => (
             <TabsScreen
@@ -552,7 +677,11 @@ export default function App() {
 
         <Stack.Screen
           name="Detail"
-          options={{ title: 'Film Detayı' }}
+          options={({ route }) => ({
+            title:
+              route.params?.film?.title ||
+              'Film Detayı',
+          })}
         >
           {(props) => (
             <DetailScreen
@@ -579,6 +708,30 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 14,
+  },
+
+  errorState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+
+  errorIcon: {
+    fontSize: 42,
+    marginBottom: 12,
   },
 
   header: {
@@ -647,11 +800,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  listToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+
   totalCount: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 10,
     marginLeft: 2,
+  },
+
+  sortButton: {
+    paddingVertical: 9,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+
+  sortButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 
   list: {
@@ -661,12 +832,10 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     borderRadius: 14,
-    marginBottom: 12,
     padding: 10,
     alignItems: 'center',
   },
 
-  // Görev 14: Sıra numarası tasarımı
   numberBadge: {
     width: 26,
     height: 26,
@@ -718,13 +887,22 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
+  separator: {
+    height: 1,
+    marginVertical: 8,
+    marginHorizontal: 8,
+  },
+
   error: {
     textAlign: 'center',
-    margin: 15,
+    marginBottom: 18,
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   retry: {
-    padding: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 30,
     borderRadius: 10,
     alignItems: 'center',
   },

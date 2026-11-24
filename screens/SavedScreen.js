@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,19 @@ export default function SavedScreen({
   savedFilms,
   colors,
 }) {
+  const [sortOrder, setSortOrder] = useState('AZ');
+
   const openDetail = (film) => {
     navigation.getParent()?.navigate('Detail', { film });
   };
 
-  const renderFilm = ({ item }) => (
+  // Favorileri orijinal diziyi değiştirmeden sırala
+  const sortedFilms = [...savedFilms].sort((a, b) => {
+    const result = a.title.localeCompare(b.title, 'tr-TR');
+    return sortOrder === 'AZ' ? result : -result;
+  });
+
+  const renderFilm = ({ item, index }) => (
     <TouchableOpacity
       style={[
         styles.card,
@@ -27,6 +35,22 @@ export default function SavedScreen({
       activeOpacity={0.7}
       onPress={() => openDetail(item)}
     >
+      <View
+        style={[
+          styles.numberBadge,
+          { backgroundColor: colors.accent },
+        ]}
+      >
+        <Text
+          style={[
+            styles.numberText,
+            { color: colors.accentText },
+          ]}
+        >
+          {index + 1}
+        </Text>
+      </View>
+
       {item.image ? (
         <Image
           source={{ uri: item.image }}
@@ -49,6 +73,8 @@ export default function SavedScreen({
             styles.filmTitle,
             { color: colors.text },
           ]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
           {item.title}
         </Text>
@@ -90,7 +116,12 @@ export default function SavedScreen({
         { backgroundColor: colors.background },
       ]}
     >
-      <Text style={[styles.title, { color: colors.text }]}>
+      <Text
+        style={[
+          styles.title,
+          { color: colors.text },
+        ]}
+      >
         ❤️ Kaydedilenler
       </Text>
 
@@ -103,8 +134,74 @@ export default function SavedScreen({
         {savedFilms.length} film kaydedildi
       </Text>
 
+      <View style={styles.sortRow}>
+        <TouchableOpacity
+          style={[
+            styles.sortButton,
+            {
+              backgroundColor:
+                sortOrder === 'AZ'
+                  ? colors.accent
+                  : colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={() => setSortOrder('AZ')}
+          accessibilityRole="button"
+          accessibilityState={{
+            selected: sortOrder === 'AZ',
+          }}
+        >
+          <Text
+            style={[
+              styles.sortButtonText,
+              {
+                color:
+                  sortOrder === 'AZ'
+                    ? colors.accentText
+                    : colors.text,
+              },
+            ]}
+          >
+            A → Z
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.sortButton,
+            {
+              backgroundColor:
+                sortOrder === 'ZA'
+                  ? colors.accent
+                  : colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={() => setSortOrder('ZA')}
+          accessibilityRole="button"
+          accessibilityState={{
+            selected: sortOrder === 'ZA',
+          }}
+        >
+          <Text
+            style={[
+              styles.sortButtonText,
+              {
+                color:
+                  sortOrder === 'ZA'
+                    ? colors.accentText
+                    : colors.text,
+              },
+            ]}
+          >
+            Z → A
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={savedFilms}
+        data={sortedFilms}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderFilm}
         contentContainerStyle={styles.list}
@@ -118,7 +215,7 @@ export default function SavedScreen({
                 { color: colors.text },
               ]}
             >
-              Henüz film kaydetmedin
+              Henüz kayıt yok
             </Text>
 
             <Text
@@ -154,7 +251,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     marginTop: 6,
-    marginBottom: 24,
+    marginBottom: 18,
+  },
+
+  sortRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+
+  sortButton: {
+    minWidth: 110,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+
+  sortButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 
   list: {
@@ -168,6 +286,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 10,
     alignItems: 'center',
+  },
+
+  numberBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+
+  numberText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 
   poster: {

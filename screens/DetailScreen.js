@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,10 @@ export default function DetailScreen({
   colors,
 }) {
   const { film } = route.params;
+
+  // Görev 11: Açıklamanın açık/kapalı durumu
+  const [showFullDescription, setShowFullDescription] =
+    useState(false);
 
   const isSaved = savedFilms.some(
     (item) => item.id === film.id
@@ -148,12 +152,18 @@ export default function DetailScreen({
             styles.saveButton,
             {
               backgroundColor: isSaved
-                ? colors.danger
+                ? colors.green
                 : colors.accent,
             },
           ]}
           onPress={() => onToggleSave(film)}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isSaved
+              ? 'Kaydedildi, kaydı kaldır'
+              : 'Filmi kaydet'
+          }
         >
           <Text
             style={[
@@ -166,7 +176,7 @@ export default function DetailScreen({
             ]}
           >
             {isSaved
-              ? '❤️ Kaydedilenlerden Çıkar'
+              ? 'Kaydedildi ✓'
               : '🤍 Kaydet'}
           </Text>
         </TouchableOpacity>
@@ -180,14 +190,45 @@ export default function DetailScreen({
           Film Açıklaması
         </Text>
 
+        {/* Görev 11: Açıklamayı 3 satıra kısalt */}
         <Text
           style={[
             styles.description,
             { color: colors.secondary },
           ]}
+          numberOfLines={
+            showFullDescription ? undefined : 3
+          }
+          ellipsizeMode="tail"
         >
           {film.description || 'Açıklama bulunamadı.'}
         </Text>
+
+        {/* Görev 11: Devamını göster / Gizle */}
+        {!!film.description && (
+          <TouchableOpacity
+            style={[
+              styles.descriptionButton,
+              { backgroundColor: colors.card },
+            ]}
+            onPress={() =>
+              setShowFullDescription((current) => !current)
+            }
+            activeOpacity={0.8}
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.descriptionButtonText,
+                { color: colors.accent },
+              ]}
+            >
+              {showFullDescription
+                ? 'Gizle ▲'
+                : 'Devamını göster ▼'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -275,5 +316,18 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     lineHeight: 26,
+  },
+
+  descriptionButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 14,
+  },
+
+  descriptionButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });
