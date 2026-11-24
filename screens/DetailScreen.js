@@ -17,9 +17,12 @@ export default function DetailScreen({
 }) {
   const { film } = route.params;
 
-  // Görev 11: Açıklamanın açık/kapalı durumu
+  // Görev 11: Açıklamayı genişletme
   const [showFullDescription, setShowFullDescription] =
     useState(false);
+
+  // Görev 7: Beğeni sayacı
+  const [likeCount, setLikeCount] = useState(0);
 
   const isSaved = savedFilms.some(
     (item) => item.id === film.id
@@ -29,6 +32,34 @@ export default function DetailScreen({
     const total = Number(minutes);
     return `${Math.floor(total / 60)} sa ${total % 60} dk`;
   };
+
+  // Görev 5: İki sütunlu bilgi
+  const renderInfoRow = (label, value) => (
+    <View
+      style={[
+        styles.infoRow,
+        { borderBottomColor: colors.border },
+      ]}
+    >
+      <Text
+        style={[
+          styles.infoLabel,
+          { color: colors.secondary },
+        ]}
+      >
+        {label}
+      </Text>
+
+      <Text
+        style={[
+          styles.infoValue,
+          { color: colors.text },
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
 
   return (
     <ScrollView
@@ -81,58 +112,47 @@ export default function DetailScreen({
             { backgroundColor: colors.card },
           ]}
         >
-          <Text
-            style={[
-              styles.info,
-              { color: colors.secondary },
-            ]}
-          >
-            🎬 Yönetmen: {film.director}
-          </Text>
-
-          {!!film.producer && (
-            <Text
-              style={[
-                styles.info,
-                { color: colors.secondary },
-              ]}
-            >
-              🎞️ Yapımcı: {film.producer}
-            </Text>
+          {renderInfoRow(
+            '🎬 Yönetmen',
+            film.director || 'Bilinmiyor'
           )}
 
-          <Text
-            style={[
-              styles.info,
-              { color: colors.secondary },
-            ]}
-          >
-            📅 Yayın Yılı: {film.release_date}
-          </Text>
+          {!!film.producer &&
+            renderInfoRow(
+              '🎞️ Yapımcı',
+              film.producer
+            )}
 
-          <Text
-            style={[
-              styles.info,
-              { color: colors.secondary },
-            ]}
-          >
-            ⏱ Süre: {formatDuration(film.running_time)}
-          </Text>
+          {renderInfoRow(
+            '📅 Yayın Yılı',
+            film.release_date || 'Bilinmiyor'
+          )}
 
-          <Text
-            style={[
-              styles.info,
-              { color: colors.secondary },
-            ]}
-          >
-            ⭐ Puan: {film.rt_score} / 100
-          </Text>
+          {renderInfoRow(
+            '⏱ Süre',
+            formatDuration(film.running_time)
+          )}
+
+          {renderInfoRow(
+            '⭐ Puan',
+            `${film.rt_score} / 100`
+          )}
+
+          {/* Görev 22: API'den yeni alan */}
+          {!!film.original_title_romanised &&
+            renderInfoRow(
+              '🌸 Latin Harfleriyle',
+              film.original_title_romanised
+            )}
 
           {Number(film.rt_score) >= 90 && (
             <View
               style={[
                 styles.badge,
-                { backgroundColor: colors.greenBackground },
+                {
+                  backgroundColor:
+                    colors.greenBackground,
+                },
               ]}
             >
               <Text
@@ -147,6 +167,50 @@ export default function DetailScreen({
           )}
         </View>
 
+        {/* Görev 7: Beğeni sayacı */}
+        <View
+          style={[
+            styles.likeContainer,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.likeButton}
+            onPress={() =>
+              setLikeCount((current) => current + 1)
+            }
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Beğeni sayısını artır"
+          >
+            <Text style={styles.likeIcon}>
+              ❤️
+            </Text>
+
+            <Text
+              style={[
+                styles.likeButtonText,
+                { color: colors.text },
+              ]}
+            >
+              Beğen
+            </Text>
+          </TouchableOpacity>
+
+          <Text
+            style={[
+              styles.likeCount,
+              { color: colors.accent },
+            ]}
+          >
+            {likeCount} beğeni
+          </Text>
+        </View>
+
+        {/* Favorilere kaydet */}
         <TouchableOpacity
           style={[
             styles.saveButton,
@@ -190,7 +254,7 @@ export default function DetailScreen({
           Film Açıklaması
         </Text>
 
-        {/* Görev 11: Açıklamayı 3 satıra kısalt */}
+        {/* Görev 11: İlk üç satır */}
         <Text
           style={[
             styles.description,
@@ -201,10 +265,10 @@ export default function DetailScreen({
           }
           ellipsizeMode="tail"
         >
-          {film.description || 'Açıklama bulunamadı.'}
+          {film.description ||
+            'Açıklama bulunamadı.'}
         </Text>
 
-        {/* Görev 11: Devamını göster / Gizle */}
         {!!film.description && (
           <TouchableOpacity
             style={[
@@ -212,7 +276,9 @@ export default function DetailScreen({
               { backgroundColor: colors.card },
             ]}
             onPress={() =>
-              setShowFullDescription((current) => !current)
+              setShowFullDescription(
+                (current) => !current
+              )
             }
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -278,9 +344,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  info: {
-    fontSize: 16,
-    marginBottom: 12,
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+
+  infoLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    marginRight: 12,
+  },
+
+  infoValue: {
+    flex: 1.25,
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
 
   badge: {
@@ -288,10 +371,43 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     alignSelf: 'flex-start',
+    marginTop: 14,
   },
 
   badgeText: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+
+  likeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+
+  likeIcon: {
+    fontSize: 25,
+    marginRight: 10,
+  },
+
+  likeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  likeCount: {
+    fontSize: 17,
     fontWeight: 'bold',
   },
 

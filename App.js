@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Switch,
 } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,14 +26,19 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import DetailScreen from './screens/DetailScreen';
 import SavedScreen from './screens/SavedScreen';
+import AboutScreen from './screens/AboutScreen';
 import { themes } from './theme';
 
-const API_URL = 'https://ghibliapi.vercel.app/films';
+// Görev 19: API Query Parametresi
+// limit=250, API'den en fazla 250 film ister.
+const API_URL =
+  'https://ghibliapi.vercel.app/films?limit=250';
+
 const FILMS_KEY = 'ghibli_saved_films';
 const THEME_KEY = 'ghibli_theme';
+const SEARCH_KEY = 'ghibli_last_search';
 
 const Stack = createNativeStackNavigator();
-
 const Tab = createBottomTabNavigator();
 
 function HomeScreen({
@@ -43,10 +49,55 @@ function HomeScreen({
 }) {
   const [films, setFilms] = useState([]);
   const [search, setSearch] = useState('');
+  const [searchReady, setSearchReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortAZ, setSortAZ] = useState(false);
+  const [showImages, setShowImages] = useState(true);
+  const [reverseOrder, setReverseOrder] = useState(false);
+  const [gridMode, setGridMode] = useState(false);
 
+  // Görev 29: Son aramayı yükle
+  useEffect(() => {
+    let active = true;
+
+    const loadLastSearch = async () => {
+      try {
+        const storedSearch =
+          await AsyncStorage.getItem(SEARCH_KEY);
+
+        if (active && storedSearch !== null) {
+          setSearch(storedSearch);
+        }
+      } catch (err) {
+        console.log('Son arama yüklenemedi:', err);
+      } finally {
+        if (active) {
+          setSearchReady(true);
+        }
+      }
+    };
+
+    loadLastSearch();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Görev 29: Son aramayı kaydet
+  useEffect(() => {
+    if (!searchReady) return;
+
+    AsyncStorage.setItem(
+      SEARCH_KEY,
+      search
+    ).catch((err) => {
+      console.log('Son arama kaydedilemedi:', err);
+    });
+  }, [search, searchReady]);
+
+  // Görev 19: Parametreli API isteği
   const getFilms = async () => {
     setLoading(true);
     setError('');
@@ -64,19 +115,20 @@ function HomeScreen({
         throw new Error('Geçersiz API verisi');
       }
 
+      // Varyant A: 2000 ve öncesi
       const selected = data
-        .filter(
-          (film) => Number(film.release_date) <= 2000
-        )
-        .sort(
-          (a, b) =>
+        .filter((film) => {
+          return Number(film.release_date) <= 2000;
+        })
+        .sort((a, b) => {
+          return (
             Number(b.release_date) -
             Number(a.release_date)
-        );
+          );
+        });
 
       setFilms(selected);
     } catch (err) {
-      // Görev 21: Ağ bağlantısı ve API hatalarını yönet
       const isNetworkError =
         err instanceof TypeError ||
         String(err?.message || '')
@@ -98,21 +150,36 @@ function HomeScreen({
   }, []);
 
   const filteredFilms = films.filter((film) =>
-    film.title
+    String(film.title || '')
       .toLocaleLowerCase('tr-TR')
-      .includes(search.toLocaleLowerCase('tr-TR'))
+      .includes(
+        search.toLocaleLowerCase('tr-TR')
+      )
   );
 
   const displayedFilms = [...filteredFilms];
 
+  // Görev 18: Alfabetik sıralama
   if (sortAZ) {
     displayedFilms.sort((a, b) =>
-      a.title.localeCompare(b.title, 'tr-TR')
+      String(a.title || '').localeCompare(
+        String(b.title || ''),
+        'tr-TR'
+      )
     );
+  }
+
+  // Görev 13: Orijinal diziyi değiştirmeden ters çevir
+  if (reverseOrder) {
+    displayedFilms.reverse();
   }
 
   const formatDuration = (minutes) => {
     const total = Number(minutes);
+
+    if (!Number.isFinite(total)) {
+      return 'Bilinmiyor';
+    }
 
     return `${Math.floor(total / 60)} sa ${
       total % 60
@@ -125,23 +192,40 @@ function HomeScreen({
     });
   };
 
-  const clearSearch = () => {
-    setSearch('');
+  // Görev 1: Zebra satırlar
+  const getRowColor = (index) => {
+    if (index % 2 === 0) {
+      return colors.card;
+    }
+
+    return isDark ? '#253247' : '#E8F0FA';
   };
 
   const renderFilm = ({ item, index }) => (
     <TouchableOpacity
       style={[
         styles.card,
-        { backgroundColor: colors.card },
+        gridMode && styles.gridCard,
+        {
+          backgroundColor: getRowColor(index),
+          shadowColor: isDark
+            ? '#000000'
+            : '#334155',
+        },
       ]}
       activeOpacity={0.7}
       onPress={() => openDetail(item)}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title} detayını aç`}
     >
+      {/* Görev 14: Sıra numarası */}
       <View
         style={[
           styles.numberBadge,
-          { backgroundColor: colors.accent },
+          gridMode && styles.gridNumberBadge,
+          {
+            backgroundColor: colors.accent,
+          },
         ]}
       >
         <Text
@@ -154,40 +238,87 @@ function HomeScreen({
         </Text>
       </View>
 
-      {item.image ? (
-        <Image
-          source={{ uri: item.image }}
-          style={styles.poster}
-        />
-      ) : (
-        <View
-          style={[
-            styles.poster,
-            styles.placeholder,
-            { backgroundColor: colors.border },
-          ]}
-        >
-          <Text style={styles.placeholderIcon}>
-            🎬
-          </Text>
-        </View>
-      )}
+      {/* Görev 3 ve 10: Görsel */}
+      {showImages &&
+        (item.image ? (
+          <Image
+            source={{ uri: item.image }}
+            style={[
+              styles.poster,
+              gridMode && styles.gridPoster,
+            ]}
+          />
+        ) : (
+          <View
+            style={[
+              styles.poster,
+              styles.placeholder,
+              gridMode && styles.gridPoster,
+              {
+                backgroundColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.placeholderLetter,
+                { color: colors.text },
+              ]}
+            >
+              {String(item.title || '?')
+                .charAt(0)
+                .toLocaleUpperCase('tr-TR')}
+            </Text>
+          </View>
+        ))}
 
-      <View style={styles.filmInfo}>
+      <View
+        style={[
+          styles.filmInfo,
+          gridMode && styles.gridFilmInfo,
+          !showImages &&
+            !gridMode &&
+            styles.filmInfoWithoutImage,
+        ]}
+      >
+        {/* Görev 2 ve 4: Başlık */}
         <Text
           style={[
             styles.filmTitle,
-            { color: colors.text },
+            gridMode && styles.gridFilmTitle,
+            {
+              color: isDark
+                ? '#93C5FD'
+                : '#1D4ED8',
+            },
           ]}
-          numberOfLines={1}
+          numberOfLines={gridMode ? 2 : 1}
           ellipsizeMode="tail"
         >
           {item.title}
         </Text>
 
+        {/* Görev 2: Orijinal ad */}
+        {!!item.original_title && (
+          <Text
+            style={[
+              styles.originalTitle,
+              gridMode && styles.gridOriginalTitle,
+              {
+                color: colors.secondary,
+              },
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.original_title}
+          </Text>
+        )}
+
         <Text
           style={[
             styles.filmMeta,
+            gridMode && styles.gridFilmMeta,
             { color: colors.secondary },
           ]}
         >
@@ -197,6 +328,7 @@ function HomeScreen({
         <Text
           style={[
             styles.filmMeta,
+            gridMode && styles.gridFilmMeta,
             { color: colors.secondary },
           ]}
         >
@@ -206,6 +338,7 @@ function HomeScreen({
         <Text
           style={[
             styles.score,
+            gridMode && styles.gridScore,
             {
               color:
                 Number(item.rt_score) >= 90
@@ -224,7 +357,9 @@ function HomeScreen({
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background },
+        {
+          backgroundColor: colors.background,
+        },
       ]}
     >
       <View style={styles.header}>
@@ -255,11 +390,6 @@ function HomeScreen({
           ]}
           onPress={onToggleTheme}
           accessibilityRole="button"
-          accessibilityLabel={
-            isDark
-              ? 'Aydınlık temaya geç'
-              : 'Karanlık temaya geç'
-          }
         >
           <Text style={styles.themeIcon}>
             {isDark ? '☀️' : '🌙'}
@@ -267,6 +397,7 @@ function HomeScreen({
         </TouchableOpacity>
       </View>
 
+      {/* Görev 29: Kalıcı arama */}
       <View style={styles.searchRow}>
         <TextInput
           style={[
@@ -277,10 +408,15 @@ function HomeScreen({
               color: colors.text,
             },
           ]}
-          placeholder="Film ara..."
+          placeholder={
+            searchReady
+              ? 'Film ara...'
+              : 'Arama yükleniyor...'
+          }
           placeholderTextColor={colors.secondary}
           value={search}
           onChangeText={setSearch}
+          editable={searchReady}
           autoCorrect={false}
         />
 
@@ -293,9 +429,8 @@ function HomeScreen({
                 borderColor: colors.border,
               },
             ]}
-            onPress={clearSearch}
+            onPress={() => setSearch('')}
             accessibilityRole="button"
-            accessibilityLabel="Aramayı temizle"
           >
             <Text
               style={[
@@ -345,7 +480,6 @@ function HomeScreen({
             ]}
             onPress={getFilms}
             accessibilityRole="button"
-            accessibilityLabel="Tekrar dene"
           >
             <Text
               style={{
@@ -382,12 +516,6 @@ function HomeScreen({
               onPress={() =>
                 setSortAZ((current) => !current)
               }
-              accessibilityRole="button"
-              accessibilityLabel={
-                sortAZ
-                  ? 'Yayın yılına göre sırala'
-                  : 'Alfabetik sırala'
-              }
             >
               <Text
                 style={[
@@ -404,15 +532,127 @@ function HomeScreen({
             </TouchableOpacity>
           </View>
 
+          {/* Görev 8: Liste / Izgara */}
+          <TouchableOpacity
+            style={[
+              styles.layoutButton,
+              {
+                backgroundColor: gridMode
+                  ? colors.accent
+                  : colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() =>
+              setGridMode((current) => !current)
+            }
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.layoutButtonText,
+                {
+                  color: gridMode
+                    ? colors.accentText
+                    : colors.text,
+                },
+              ]}
+            >
+              {gridMode
+                ? '☰ Liste Görünümü'
+                : '▦ Izgara Görünümü'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Görev 13: Sırayı ters çevir */}
+          <TouchableOpacity
+            style={[
+              styles.reverseButton,
+              {
+                backgroundColor: reverseOrder
+                  ? colors.accent
+                  : colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+            onPress={() =>
+              setReverseOrder(
+                (current) => !current
+              )
+            }
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.reverseButtonText,
+                {
+                  color: reverseOrder
+                    ? colors.accentText
+                    : colors.text,
+                },
+              ]}
+            >
+              {reverseOrder
+                ? '↩ Normal Sıra'
+                : '⇅ Sırayı Ters Çevir'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Görev 10: Görselleri gizle / göster */}
+          <View
+            style={[
+              styles.switchContainer,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.switchLabel,
+                { color: colors.text },
+              ]}
+            >
+              🖼️ Film görsellerini göster
+            </Text>
+
+            <Switch
+              value={showImages}
+              onValueChange={setShowImages}
+              trackColor={{
+                false: colors.border,
+                true: colors.accent,
+              }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
           <FlatList
+            key={gridMode ? 'grid-2' : 'list-1'}
             data={displayedFilms}
+            numColumns={gridMode ? 2 : 1}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderFilm}
+            extraData={{
+              showImages,
+              reverseOrder,
+              sortAZ,
+              isDark,
+              gridMode,
+            }}
+            columnWrapperStyle={
+              gridMode ? styles.gridRow : undefined
+            }
             ItemSeparatorComponent={() => (
               <View
                 style={[
                   styles.separator,
-                  { backgroundColor: colors.border },
+                  {
+                    backgroundColor: gridMode
+                      ? 'transparent'
+                      : colors.border,
+                  },
                 ]}
               />
             )}
@@ -437,6 +677,7 @@ function HomeScreen({
 
 function TabsScreen({
   savedFilms,
+  onClearSaved,
   colors,
   isDark,
   onToggleTheme,
@@ -453,7 +694,7 @@ function TabsScreen({
           borderTopColor: colors.border,
         },
         tabBarLabelStyle: {
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: 'bold',
         },
       }}
@@ -462,9 +703,7 @@ function TabsScreen({
         name="Filmler"
         options={{
           tabBarIcon: () => (
-            <Text style={{ fontSize: 22 }}>
-              🎬
-            </Text>
+            <Text style={styles.tabIcon}>🎬</Text>
           ),
         }}
       >
@@ -482,9 +721,7 @@ function TabsScreen({
         name="Favorilerim"
         options={{
           tabBarIcon: () => (
-            <Text style={{ fontSize: 22 }}>
-              ⭐
-            </Text>
+            <Text style={styles.tabIcon}>⭐</Text>
           ),
         }}
       >
@@ -492,8 +729,22 @@ function TabsScreen({
           <SavedScreen
             {...props}
             savedFilms={savedFilms}
+            onClearSaved={onClearSaved}
             colors={colors}
           />
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Hakkında"
+        options={{
+          tabBarIcon: () => (
+            <Text style={styles.tabIcon}>ℹ️</Text>
+          ),
+        }}
+      >
+        {(props) => (
+          <AboutScreen {...props} colors={colors} />
         )}
       </Tab.Screen>
     </Tab.Navigator>
@@ -501,12 +752,8 @@ function TabsScreen({
 }
 
 export default function App() {
-  const [savedFilms, setSavedFilms] =
-    useState([]);
-
-  const [isDark, setIsDark] =
-    useState(false);
-
+  const [savedFilms, setSavedFilms] = useState([]);
+  const [isDark, setIsDark] = useState(false);
   const [storageReady, setStorageReady] =
     useState(false);
 
@@ -517,17 +764,14 @@ export default function App() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [
-          storedFilms,
-          storedTheme,
-        ] = await Promise.all([
-          AsyncStorage.getItem(FILMS_KEY),
-          AsyncStorage.getItem(THEME_KEY),
-        ]);
+        const [storedFilms, storedTheme] =
+          await Promise.all([
+            AsyncStorage.getItem(FILMS_KEY),
+            AsyncStorage.getItem(THEME_KEY),
+          ]);
 
         if (storedFilms !== null) {
-          const parsedFilms =
-            JSON.parse(storedFilms);
+          const parsedFilms = JSON.parse(storedFilms);
 
           if (Array.isArray(parsedFilms)) {
             setSavedFilms(parsedFilms);
@@ -538,10 +782,7 @@ export default function App() {
           setIsDark(true);
         }
       } catch (err) {
-        console.log(
-          'Kayıtlar yüklenemedi:',
-          err
-        );
+        console.log('Kayıtlar yüklenemedi:', err);
       } finally {
         setStorageReady(true);
       }
@@ -556,12 +797,9 @@ export default function App() {
     AsyncStorage.setItem(
       FILMS_KEY,
       JSON.stringify(savedFilms)
-    ).catch((err) =>
-      console.log(
-        'Favoriler kaydedilemedi:',
-        err
-      )
-    );
+    ).catch((err) => {
+      console.log('Favoriler kaydedilemedi:', err);
+    });
   }, [savedFilms, storageReady]);
 
   useEffect(() => {
@@ -570,14 +808,12 @@ export default function App() {
     AsyncStorage.setItem(
       THEME_KEY,
       isDark ? 'dark' : 'light'
-    ).catch((err) =>
-      console.log(
-        'Tema kaydedilemedi:',
-        err
-      )
-    );
+    ).catch((err) => {
+      console.log('Tema kaydedilemedi:', err);
+    });
   }, [isDark, storageReady]);
 
+  // Görev 28: Kayıt tarihi ekle
   const toggleSave = (film) => {
     setSavedFilms((current) => {
       const exists = current.some(
@@ -590,8 +826,19 @@ export default function App() {
         );
       }
 
-      return [...current, film];
+      return [
+        ...current,
+        {
+          ...film,
+          savedAt: new Date().toISOString(),
+        },
+      ];
     });
+  };
+
+  // Görev 27: Tüm favorileri temizle
+  const clearSavedFilms = () => {
+    setSavedFilms([]);
   };
 
   const toggleTheme = () => {
@@ -603,10 +850,7 @@ export default function App() {
       <View
         style={[
           styles.loadingContainer,
-          {
-            backgroundColor:
-              colors.background,
-          },
+          { backgroundColor: colors.background },
         ]}
       >
         <ActivityIndicator
@@ -641,9 +885,7 @@ export default function App() {
   };
 
   return (
-    <NavigationContainer
-      theme={navigationTheme}
-    >
+    <NavigationContainer theme={navigationTheme}>
       <StatusBar
         barStyle={colors.statusBar}
         backgroundColor={colors.background}
@@ -653,21 +895,19 @@ export default function App() {
         screenOptions={{
           headerTintColor: colors.text,
           headerStyle: {
-            backgroundColor:
-              colors.background,
+            backgroundColor: colors.background,
           },
         }}
       >
         <Stack.Screen
           name="Tabs"
-          options={{
-            headerShown: false,
-          }}
+          options={{ headerShown: false }}
         >
           {(props) => (
             <TabsScreen
               {...props}
               savedFilms={savedFilms}
+              onClearSaved={clearSavedFilms}
               colors={colors}
               isDark={isDark}
               onToggleTheme={toggleTheme}
@@ -703,60 +943,50 @@ const styles = StyleSheet.create({
     paddingTop: 65,
     paddingHorizontal: 16,
   },
-
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   loadingState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   loadingText: {
     fontSize: 16,
     fontWeight: '600',
     marginTop: 14,
   },
-
   errorState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-
   errorIcon: {
     fontSize: 42,
     marginBottom: 12,
   },
-
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
-
   headerText: {
     flex: 1,
     alignItems: 'center',
   },
-
   title: {
     fontSize: 25,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-
   subtitle: {
     fontSize: 14,
     textAlign: 'center',
     marginTop: 6,
   },
-
   themeButton: {
     width: 48,
     height: 48,
@@ -766,17 +996,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#64748B',
   },
-
   themeIcon: {
     fontSize: 24,
   },
-
+  tabIcon: {
+    fontSize: 21,
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 18,
   },
-
   searchInput: {
     flex: 1,
     borderRadius: 12,
@@ -784,7 +1014,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
   },
-
   clearButton: {
     width: 48,
     height: 48,
@@ -794,48 +1023,97 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 8,
   },
-
   clearButtonText: {
     fontSize: 22,
     fontWeight: 'bold',
   },
-
   listToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-
   totalCount: {
     fontSize: 14,
     fontWeight: '600',
-    marginLeft: 2,
   },
-
   sortButton: {
     paddingVertical: 9,
     paddingHorizontal: 15,
     borderRadius: 10,
     borderWidth: 1,
   },
-
   sortButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
   },
-
+  layoutButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  layoutButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  reverseButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reverseButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
   list: {
     paddingBottom: 30,
+    paddingHorizontal: 4,
+    paddingTop: 4,
   },
-
   card: {
     flexDirection: 'row',
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 16,
+    padding: 12,
     alignItems: 'center',
+    elevation: 4,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.16,
+    shadowRadius: 5,
   },
-
+  gridCard: {
+    width: '48%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    padding: 10,
+    minHeight: 250,
+  },
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   numberBadge: {
     width: 26,
     height: 26,
@@ -844,69 +1122,102 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
   },
-
+  gridNumberBadge: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    marginRight: 0,
+  },
   numberText: {
     fontSize: 12,
     fontWeight: 'bold',
   },
-
   poster: {
-    width: 90,
-    height: 125,
-    borderRadius: 8,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    resizeMode: 'cover',
   },
-
+  gridPoster: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
   placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  placeholderIcon: {
+  placeholderLetter: {
     fontSize: 32,
+    fontWeight: 'bold',
   },
-
   filmInfo: {
     flex: 1,
     paddingLeft: 15,
   },
-
+  filmInfoWithoutImage: {
+    paddingLeft: 6,
+  },
+  gridFilmInfo: {
+    flex: 0,
+    width: '100%',
+    paddingLeft: 0,
+    marginTop: 10,
+    alignItems: 'center',
+  },
   filmTitle: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  gridFilmTitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    minHeight: 38,
+  },
+  originalTitle: {
+    fontSize: 12,
     marginBottom: 8,
   },
-
+  gridOriginalTitle: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 6,
+    width: '100%',
+  },
   filmMeta: {
     fontSize: 14,
     marginBottom: 5,
   },
-
+  gridFilmMeta: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 3,
+  },
   score: {
     fontSize: 15,
     fontWeight: 'bold',
     marginTop: 5,
   },
-
+  gridScore: {
+    fontSize: 13,
+    marginTop: 3,
+  },
   separator: {
     height: 1,
     marginVertical: 8,
     marginHorizontal: 8,
   },
-
   error: {
     textAlign: 'center',
     marginBottom: 18,
     fontSize: 16,
     fontWeight: '600',
   },
-
   retry: {
     paddingVertical: 13,
     paddingHorizontal: 30,
     borderRadius: 10,
-    alignItems: 'center',
   },
-
   empty: {
     textAlign: 'center',
     marginTop: 20,
